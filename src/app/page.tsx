@@ -2,7 +2,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useSession, signIn, signOut } from "next-auth/react"
 import { 
   Brain, 
@@ -13,8 +13,11 @@ import {
   AlertTriangle,
   CheckCircle,
   Copy,
-  User
+  User,
+  RefreshCw
 } from "lucide-react"
+import Quiz from "@/components/Quiz"
+import { mbtiDescriptions } from "@/lib/quiz-questions"
 
 interface AnalysisResult {
   perfil?: {
@@ -50,6 +53,32 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  
+  // Quiz state
+  const [checkingQuiz, setCheckingQuiz] = useState(true)
+  const [hasCompletedQuiz, setHasCompletedQuiz] = useState(false)
+  const [userProfile, setUserProfile] = useState<string | null>(null)
+  const [showQuickQuiz, setShowQuickQuiz] = useState(false)
+
+  // Check if user has completed quiz
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch('/api/quiz')
+        .then(res => res.json())
+        .then(data => {
+          setHasCompletedQuiz(data.hasCompletedQuiz)
+          setUserProfile(data.profile)
+          setCheckingQuiz(false)
+        })
+        .catch(() => setCheckingQuiz(false))
+    }
+  }, [session])
+
+  const handleQuizComplete = (profile: string, scores: { E: number, S: number, T: number, J: number }) => {
+    setHasCompletedQuiz(true)
+    setUserProfile(profile)
+    setShowQuickQuiz(false)
+  }
 
   const handleAnalyze = async () => {
     if (!conversation.trim()) {
@@ -65,7 +94,7 @@ export default function Home() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversation })
+        body: JSON.stringify({ conversation, userMbti: userProfile })
       })
 
       const data = await res.json()
@@ -210,7 +239,29 @@ export default function Home() {
     )
   }
 
-  // Logged in - show app
+  // Checking quiz status
+  if (checkingQuiz) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#0a0a0b"
+      }}>
+        <Loader2 style={{ width: 32, height: 32, color: "#ef4444", animation: "spin 1s linear infinite" }} />
+      </div>
+    )
+  }
+
+  // Show quiz if not completed
+  if (!hasCompletedQuiz || showQuickQuiz) {
+    return <Quiz onComplete={handleQuizComplete} isQuickQuiz={showQuickQuiz} />
+  }
+
+  // Logged in with quiz completed - show app
+  const profileDesc = userProfile ? mbtiDescriptions[userProfile] : null
+
   return (
     <main style={{
       minHeight: "100vh",
@@ -246,6 +297,26 @@ export default function Home() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            {/* User Profile Badge */}
+            {userProfile && (
+              <div 
+                onClick={() => setShowQuickQuiz(true)}
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 8, 
+                  cursor: "pointer",
+                  padding: "6px 12px",
+                  background: "#27272a",
+                  borderRadius: 6
+                }}
+                title="Click para recalcular tu perfil"
+              >
+                <span style={{ color: "#ef4444", fontWeight: "bold" }}>{userProfile}</span>
+                <RefreshCw style={{ width: 14, height: 14, color: "#71717a" }} />
+              </div>
+            )}
+            
             <span style={{ color: "#71717a" }}>
               Créditos: <strong style={{ color: "white" }}>{session.user.credits}</strong>
             </span>
@@ -278,6 +349,57 @@ export default function Home() {
 
       {/* Main content */}
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 20px" }}>
+        
+        {/* User Profile Card */}
+        {userProfile && profileDesc && (
+          <div style={{
+            background: "#141416",
+            border: "1px solid #27272a",
+            borderRadius: 12,
+            padding: 20,
+            marginBottom: 32,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{
+                width: 48,
+                height: 48,
+                background: "#ef444420",
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}>
+                <span style={{ fontSize: 18, fontWeight: "bold", color: "#ef4444" }}>{userProfile}</span>
+              </div>
+              <div>
+                <div style={{ fontWeight: 600 }}>{profileDesc.name}</div>
+                <div style={{ fontSize: 14, color: "#71717a" }}>Tu talón de Aquiles: {profileDesc.weakness}</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowQuickQuiz(true)}
+              style={{
+                padding: "8px 16px",
+                background: "#27272a",
+                color: "#a1a1aa",
+                border: "none",
+                borderRadius: 6,
+                fontSize: 14,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6
+              }}
+            >
+              <RefreshCw style={{ width: 14, height: 14 }} />
+              Recalcular
+            </button>
+          </div>
+        )}
+
         {/* Input section */}
         <div style={{ marginBottom: 40 }}>
           <label style={{ display: "block", marginBottom: 12 }}>

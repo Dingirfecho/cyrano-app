@@ -46,6 +46,11 @@ model VerificationToken {
 }
 
 // App models
+enum Plan {
+  FREE
+  PRO
+  UNLIMITED
+}
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -54,17 +59,19 @@ model User {
   image         String?
   credits       Int       @default(3)
   plan          Plan      @default(FREE)
+  // Agregar estos campos nuevos:
+  mbtiProfile   String?   // INTJ, ENFP, etc.
+  mbtiE         Int?      // Score Extroversion (0-100)
+  mbtiS         Int?      // Score Sensing (0-100)
+  mbtiT         Int?      // Score Thinking (0-100)
+  mbtiJ         Int?      // Score Judging (0-100)
+  quizCompletedAt DateTime?
+  
   accounts      Account[]
   sessions      Session[]
   analyses      Analysis[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-}
-
-enum Plan {
-  FREE
-  PRO
-  UNLIMITED
 }
 
 model Analysis {
