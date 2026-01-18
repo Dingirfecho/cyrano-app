@@ -15,32 +15,38 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { profile, scores } = await req.json()
+    const { archetype, scores } = await req.json()
 
     // Validar datos
-    if (!profile || profile.length !== 4) {
+    if (!archetype) {
       return NextResponse.json(
-        { error: "Perfil MBTI inválido" },
+        { error: "Arquetipo inválido" },
         { status: 400 }
       )
     }
 
-    // Actualizar usuario con su perfil MBTI
+    // Actualizar usuario con su arquetipo Cyrano
+    // Usamos los campos existentes de forma creativa:
+    // mbtiProfile -> archetype (INTERROGATOR, PLEASER, etc)
+    // mbtiE -> control score
+    // mbtiS -> validation score  
+    // mbtiT -> emotion score
+    // mbtiJ -> initiative score
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: {
-        mbtiProfile: profile,
-        mbtiE: scores.E,
-        mbtiS: scores.S,
-        mbtiT: scores.T,
-        mbtiJ: scores.J,
+        mbtiProfile: archetype,
+        mbtiE: scores.control || 0,
+        mbtiS: scores.validation || 0,
+        mbtiT: scores.emotion || 0,
+        mbtiJ: scores.initiative || 0,
         quizCompletedAt: new Date()
       }
     })
 
     return NextResponse.json({
       success: true,
-      profile: updatedUser.mbtiProfile
+      archetype: updatedUser.mbtiProfile
     })
 
   } catch (error) {
@@ -76,12 +82,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       hasCompletedQuiz: !!user?.quizCompletedAt,
-      profile: user?.mbtiProfile,
+      archetype: user?.mbtiProfile,
       scores: user?.mbtiProfile ? {
-        E: user.mbtiE,
-        S: user.mbtiS,
-        T: user.mbtiT,
-        J: user.mbtiJ
+        control: user.mbtiE,
+        validation: user.mbtiS,
+        emotion: user.mbtiT,
+        initiative: user.mbtiJ
       } : null
     })
 
