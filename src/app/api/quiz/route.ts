@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { archetype, scores } = await req.json()
+    const { archetype, scores, demographics } = await req.json()
 
     // Validar datos
     if (!archetype) {
@@ -25,23 +25,28 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Actualizar usuario con su arquetipo Cyrano
-    // Usamos los campos existentes de forma creativa:
-    // mbtiProfile -> archetype (INTERROGATOR, PLEASER, etc)
-    // mbtiE -> control score
-    // mbtiS -> validation score  
-    // mbtiT -> emotion score
-    // mbtiJ -> initiative score
+    // Preparar datos de actualización
+    const updateData: any = {
+      mbtiProfile: archetype,
+      mbtiE: scores?.control || 0,
+      mbtiS: scores?.validation || 0,
+      mbtiT: scores?.emotion || 0,
+      mbtiJ: scores?.initiative || 0,
+      quizCompletedAt: new Date()
+    }
+
+    // Agregar datos demográficos si existen
+    if (demographics) {
+      if (demographics.gender) updateData.gender = demographics.gender
+      if (demographics.age) updateData.age = parseInt(demographics.age.split('-')[0]) || null
+      if (demographics.lookingFor) updateData.lookingFor = demographics.lookingFor
+      if (demographics.intention) updateData.intention = demographics.intention
+    }
+
+    // Actualizar usuario
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
-      data: {
-        mbtiProfile: archetype,
-        mbtiE: scores.control || 0,
-        mbtiS: scores.validation || 0,
-        mbtiT: scores.emotion || 0,
-        mbtiJ: scores.initiative || 0,
-        quizCompletedAt: new Date()
-      }
+      data: updateData
     })
 
     return NextResponse.json({
@@ -76,7 +81,11 @@ export async function GET(req: NextRequest) {
         mbtiS: true,
         mbtiT: true,
         mbtiJ: true,
-        quizCompletedAt: true
+        quizCompletedAt: true,
+        gender: true,
+        age: true,
+        lookingFor: true,
+        intention: true
       }
     })
 
@@ -88,7 +97,13 @@ export async function GET(req: NextRequest) {
         validation: user.mbtiS,
         emotion: user.mbtiT,
         initiative: user.mbtiJ
-      } : null
+      } : null,
+      demographics: {
+        gender: user?.gender,
+        age: user?.age,
+        lookingFor: user?.lookingFor,
+        intention: user?.intention
+      }
     })
 
   } catch (error) {

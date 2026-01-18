@@ -71,6 +71,10 @@ model User {
   mbtiT         Int?      // Score Thinking (0-100)
   mbtiJ         Int?      // Score Judging (0-100)
   quizCompletedAt DateTime?
+  ender          String?   // hombre_cis, mujer_cis, hombre_gay, mujer_lesbiana, no_binario, otro
+  age             Int?
+  lookingFor      String?   // hombres, mujeres, todos
+  intention       String?   // pareja, casual, amigos, no_definido
   
   accounts      Account[]
   sessions      Session[]
