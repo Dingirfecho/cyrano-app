@@ -51,6 +51,10 @@ enum Plan {
   PRO
   UNLIMITED
 }
+enum Role {
+  USER
+  ADMIN
+}
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -59,6 +63,7 @@ model User {
   image         String?
   credits       Int       @default(3)
   plan          Plan      @default(FREE)
+  role          Role      @default(USER)  // Agregar esta línea
   // Agregar estos campos nuevos:
   mbtiProfile   String?   // INTJ, ENFP, etc.
   mbtiE         Int?      // Score Extroversion (0-100)
