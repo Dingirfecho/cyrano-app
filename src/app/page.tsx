@@ -6,17 +6,17 @@ import { useState, useEffect } from "react"
 import { useSession, signIn, signOut } from "next-auth/react"
 import { 
   Brain, 
-  Zap, 
-  Target, 
   LogOut, 
   Loader2,
-  AlertTriangle,
   CheckCircle,
   Copy,
   User,
-  RefreshCw
+  RefreshCw,
+  MessageSquare,
+  Camera
 } from "lucide-react"
 import Quiz from "@/components/Quiz"
+import ProfileAnalyzer from "@/components/ProfileAnalyzer"
 import { cyranoArchetypes, DimensionScores } from "@/lib/cyrano-archetypes"
 
 interface AnalysisResult {
@@ -46,6 +46,8 @@ interface AnalysisResult {
   sugerencia_menor?: string
 }
 
+type ActiveTab = 'chat' | 'profile'
+
 export default function Home() {
   const { data: session, status } = useSession()
   const [conversation, setConversation] = useState("")
@@ -53,6 +55,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [activeTab, setActiveTab] = useState<ActiveTab>('chat')
   
   // Quiz state
   const [checkingQuiz, setCheckingQuiz] = useState(true)
@@ -200,33 +203,45 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Archetypes Preview */}
-          <div>
-            <h2 style={{ fontSize: 24, fontWeight: 600, marginBottom: 24, color: "#a1a1aa" }}>
-              Los 6 Arquetipos de Dating
-            </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-              {Object.values(cyranoArchetypes).map((arch) => (
-                <div key={arch.id} style={{
-                  background: "#141416",
-                  border: "1px solid #27272a",
-                  borderRadius: 12,
-                  padding: 20,
-                  display: "flex",
-                  gap: 16,
-                  alignItems: "flex-start"
-                }}>
-                  <span style={{ fontSize: 32 }}>{arch.emoji}</span>
-                  <div>
-                    <h3 style={{ fontWeight: 600, color: arch.color, marginBottom: 4 }}>
-                      {arch.name}
-                    </h3>
-                    <p style={{ fontSize: 14, color: "#71717a" }}>
-                      {arch.tagline}
-                    </p>
-                  </div>
-                </div>
-              ))}
+          {/* Features */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
+            <div style={{
+              background: "#141416",
+              border: "1px solid #27272a",
+              borderRadius: 12,
+              padding: 24
+            }}>
+              <MessageSquare style={{ width: 32, height: 32, color: "#ef4444", marginBottom: 16 }} />
+              <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Análisis de Chats</h3>
+              <p style={{ color: "#71717a", lineHeight: 1.6 }}>
+                Pegá tus conversaciones y descubrí qué estás haciendo mal y cómo corregirlo con respuestas alternativas.
+              </p>
+            </div>
+            
+            <div style={{
+              background: "#141416",
+              border: "1px solid #27272a",
+              borderRadius: 12,
+              padding: 24
+            }}>
+              <Camera style={{ width: 32, height: 32, color: "#ec4899", marginBottom: 16 }} />
+              <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Análisis de Perfil</h3>
+              <p style={{ color: "#71717a", lineHeight: 1.6 }}>
+                Subí screenshots de tu perfil y recibí feedback detallado sobre fotos, bio y estrategia.
+              </p>
+            </div>
+            
+            <div style={{
+              background: "#141416",
+              border: "1px solid #27272a",
+              borderRadius: 12,
+              padding: 24
+            }}>
+              <Brain style={{ width: 32, height: 32, color: "#f59e0b", marginBottom: 16 }} />
+              <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Tu Arquetipo</h3>
+              <p style={{ color: "#71717a", lineHeight: 1.6 }}>
+                Descubrí cuál de los 6 arquetipos de dating te define y cómo superar tus puntos ciegos.
+              </p>
             </div>
           </div>
         </div>
@@ -390,289 +405,352 @@ export default function Home() {
           </div>
         )}
 
-        {/* Input section */}
-        <div style={{ marginBottom: 40 }}>
-          <label style={{ display: "block", marginBottom: 12 }}>
-            <span style={{ fontSize: 18, fontWeight: 500 }}>Pegá tu conversación</span>
-            <span style={{ color: "#71717a", marginLeft: 8, fontSize: 14 }}>
-              (copiá y pegá el chat que querés analizar)
-            </span>
-          </label>
-          
-          <textarea
-            value={conversation}
-            onChange={(e) => setConversation(e.target.value)}
-            placeholder={"Yo: Hola, cómo estás?\nElla: Bien y vos?\nYo: Todo bien, qué hacés?"}
-            style={{
-              width: "100%",
-              minHeight: 150,
-              background: "#141416",
-              border: "1px solid #27272a",
-              borderRadius: 8,
-              padding: 16,
-              color: "white",
-              fontSize: 14,
-              fontFamily: "monospace",
-              resize: "vertical",
-              marginBottom: 16
-            }}
-          />
-
-          {error && (
-            <div style={{
-              background: "#ef444420",
-              border: "1px solid #ef444450",
-              borderRadius: 8,
-              padding: 12,
-              color: "#fca5a5",
-              marginBottom: 16
-            }}>
-              {error}
-            </div>
-          )}
-
+        {/* Tabs */}
+        <div style={{
+          display: "flex",
+          gap: 8,
+          marginBottom: 32,
+          background: "#141416",
+          padding: 6,
+          borderRadius: 10,
+          border: "1px solid #27272a"
+        }}>
           <button
-            onClick={handleAnalyze}
-            disabled={loading || !conversation.trim()}
+            onClick={() => setActiveTab('chat')}
             style={{
-              width: "100%",
-              background: loading ? "#71717a" : "#ef4444",
-              color: "white",
-              padding: "16px 24px",
-              borderRadius: 8,
+              flex: 1,
+              padding: "14px 20px",
+              background: activeTab === 'chat' ? '#ef4444' : 'transparent',
+              color: activeTab === 'chat' ? 'white' : '#71717a',
               border: "none",
-              fontSize: 16,
+              borderRadius: 6,
+              fontSize: 15,
               fontWeight: 500,
-              cursor: loading ? "wait" : "pointer",
+              cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 8,
-              opacity: !conversation.trim() ? 0.5 : 1
+              gap: 10,
+              transition: "all 0.2s"
             }}
           >
-            {loading ? (
-              <>
-                <Loader2 style={{ width: 20, height: 20, animation: "spin 1s linear infinite" }} />
-                Analizando...
-              </>
-            ) : (
-              <>
-                <Brain style={{ width: 20, height: 20 }} />
-                Analizar Conversación
-              </>
-            )}
+            <MessageSquare style={{ width: 18, height: 18 }} />
+            Análisis de Chat
+          </button>
+          <button
+            onClick={() => setActiveTab('profile')}
+            style={{
+              flex: 1,
+              padding: "14px 20px",
+              background: activeTab === 'profile' ? '#ec4899' : 'transparent',
+              color: activeTab === 'profile' ? 'white' : '#71717a',
+              border: "none",
+              borderRadius: 6,
+              fontSize: 15,
+              fontWeight: 500,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              transition: "all 0.2s"
+            }}
+          >
+            <Camera style={{ width: 18, height: 18 }} />
+            Análisis de Perfil
           </button>
         </div>
 
-        {/* Results */}
-        {analysis && (
-          <div style={{ animation: "fadeIn 0.5s ease-out" }}>
-            {/* Success state */}
-            {analysis.estado === "ok" ? (
-              <div style={{
-                background: "#22c55e20",
-                border: "1px solid #22c55e50",
-                borderRadius: 12,
-                padding: 24
-              }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
-                  <CheckCircle style={{ width: 32, height: 32, color: "#22c55e", flexShrink: 0 }} />
-                  <div>
-                    <h3 style={{ fontSize: 20, fontWeight: 600, color: "#86efac", marginBottom: 8 }}>
-                      ¡Bien ahí!
-                    </h3>
-                    <p style={{ color: "#d4d4d8" }}>{analysis.mensaje}</p>
-                    {analysis.sugerencia_menor && (
-                      <p style={{ color: "#71717a", marginTop: 8, fontSize: 14 }}>
-                        💡 {analysis.sugerencia_menor}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                {/* Diagnosis Header */}
-                <div style={{
+        {/* Tab Content */}
+        {activeTab === 'profile' ? (
+          <ProfileAnalyzer />
+        ) : (
+          <>
+            {/* Chat Analysis - Input section */}
+            <div style={{ marginBottom: 40 }}>
+              <label style={{ display: "block", marginBottom: 12 }}>
+                <span style={{ fontSize: 18, fontWeight: 500 }}>Pegá tu conversación</span>
+                <span style={{ color: "#71717a", marginLeft: 8, fontSize: 14 }}>
+                  (copiá y pegá el chat que querés analizar)
+                </span>
+              </label>
+              
+              <textarea
+                value={conversation}
+                onChange={(e) => setConversation(e.target.value)}
+                placeholder={"Yo: Hola, cómo estás?\nElla: Bien y vos?\nYo: Todo bien, qué hacés?"}
+                style={{
+                  width: "100%",
+                  minHeight: 150,
                   background: "#141416",
                   border: "1px solid #27272a",
-                  borderRadius: 12,
-                  padding: 24
+                  borderRadius: 8,
+                  padding: 16,
+                  color: "white",
+                  fontSize: 14,
+                  fontFamily: "monospace",
+                  resize: "vertical",
+                  marginBottom: 16
+                }}
+              />
+
+              {error && (
+                <div style={{
+                  background: "#ef444420",
+                  border: "1px solid #ef444450",
+                  borderRadius: 8,
+                  padding: 12,
+                  color: "#fca5a5",
+                  marginBottom: 16
                 }}>
-                  <h2 style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#71717a",
-                    textTransform: "uppercase",
-                    letterSpacing: 1,
-                    marginBottom: 20
+                  {error}
+                </div>
+              )}
+
+              <button
+                onClick={handleAnalyze}
+                disabled={loading || !conversation.trim()}
+                style={{
+                  width: "100%",
+                  background: loading ? "#71717a" : "#ef4444",
+                  color: "white",
+                  padding: "16px 24px",
+                  borderRadius: 8,
+                  border: "none",
+                  fontSize: 16,
+                  fontWeight: 500,
+                  cursor: loading ? "wait" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  opacity: !conversation.trim() ? 0.5 : 1
+                }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 style={{ width: 20, height: 20, animation: "spin 1s linear infinite" }} />
+                    Analizando...
+                  </>
+                ) : (
+                  <>
+                    <Brain style={{ width: 20, height: 20 }} />
+                    Analizar Conversación
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Results */}
+            {analysis && (
+              <div style={{ animation: "fadeIn 0.5s ease-out" }}>
+                {/* Success state */}
+                {analysis.estado === "ok" ? (
+                  <div style={{
+                    background: "#22c55e20",
+                    border: "1px solid #22c55e50",
+                    borderRadius: 12,
+                    padding: 24
                   }}>
-                    🧬 Tu Diagnóstico
-                  </h2>
-                  
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-                    <div>
-                      <div style={{ fontSize: 12, color: "#71717a", marginBottom: 4 }}>Perfil MBTI</div>
-                      <div style={{ fontSize: 28, fontWeight: "bold", color: "#ef4444" }}>
-                        {analysis.perfil?.mbti}
-                      </div>
-                      <div style={{ fontSize: 14, color: "#a1a1aa" }}>
-                        {analysis.perfil?.nombre}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ fontSize: 12, color: "#71717a", marginBottom: 4 }}>Vector DISC</div>
-                      <div style={{ fontSize: 16, fontWeight: 500, color: "#d4d4d8" }}>
-                        {analysis.perfil?.disc}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ fontSize: 12, color: "#71717a", marginBottom: 4 }}>Arquetipo</div>
-                      <div style={{ fontSize: 18, fontWeight: "bold", color: "#f59e0b" }}>
-                        {analysis.arquetipo?.codigo}
-                      </div>
-                      <div style={{ fontSize: 14, color: "#a1a1aa" }}>
-                        {analysis.arquetipo?.nombre}
-                        {analysis.arquetipo?.modalidad && (
-                          <span style={{ color: "#71717a" }}> ({analysis.arquetipo.modalidad})</span>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                      <CheckCircle style={{ width: 32, height: 32, color: "#22c55e", flexShrink: 0 }} />
+                      <div>
+                        <h3 style={{ fontSize: 20, fontWeight: 600, color: "#86efac", marginBottom: 8 }}>
+                          ¡Bien ahí!
+                        </h3>
+                        <p style={{ color: "#d4d4d8" }}>{analysis.mensaje}</p>
+                        {analysis.sugerencia_menor && (
+                          <p style={{ color: "#71717a", marginTop: 8, fontSize: 14 }}>
+                            💡 {analysis.sugerencia_menor}
+                          </p>
                         )}
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                    {/* Diagnosis Header */}
+                    <div style={{
+                      background: "#141416",
+                      border: "1px solid #27272a",
+                      borderRadius: 12,
+                      padding: 24
+                    }}>
+                      <h2 style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "#71717a",
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                        marginBottom: 20
+                      }}>
+                        🧬 Tu Diagnóstico
+                      </h2>
+                      
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+                        <div>
+                          <div style={{ fontSize: 12, color: "#71717a", marginBottom: 4 }}>Perfil MBTI</div>
+                          <div style={{ fontSize: 28, fontWeight: "bold", color: "#ef4444" }}>
+                            {analysis.perfil?.mbti}
+                          </div>
+                          <div style={{ fontSize: 14, color: "#a1a1aa" }}>
+                            {analysis.perfil?.nombre}
+                          </div>
+                        </div>
 
-                {/* The Failure */}
-                <div style={{
-                  background: "#141416",
-                  border: "1px solid #27272a",
-                  borderRadius: 12,
-                  padding: 24
-                }}>
-                  <h3 style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#71717a",
-                    textTransform: "uppercase",
-                    letterSpacing: 1,
-                    marginBottom: 16
-                  }}>
-                    ⚠️ El Fallo
-                  </h3>
-                  
-                  <p style={{ color: "#d4d4d8", marginBottom: 20, lineHeight: 1.6 }}>
-                    {analysis.fallo?.explicacion}
-                  </p>
+                        <div>
+                          <div style={{ fontSize: 12, color: "#71717a", marginBottom: 4 }}>Vector DISC</div>
+                          <div style={{ fontSize: 16, fontWeight: 500, color: "#d4d4d8" }}>
+                            {analysis.perfil?.disc}
+                          </div>
+                        </div>
 
-                  <div style={{
-                    background: "#0a0a0b",
-                    borderRadius: 8,
-                    padding: 16,
-                    marginBottom: 16
-                  }}>
-                    <div style={{ fontSize: 12, color: "#71717a", marginBottom: 8 }}>Momento crítico:</div>
-                    <p style={{ color: "#fca5a5", fontFamily: "monospace", fontSize: 14 }}>
-                      "{analysis.fallo?.momento_critico}"
-                    </p>
-                  </div>
+                        <div>
+                          <div style={{ fontSize: 12, color: "#71717a", marginBottom: 4 }}>Arquetipo</div>
+                          <div style={{ fontSize: 18, fontWeight: "bold", color: "#f59e0b" }}>
+                            {analysis.arquetipo?.codigo}
+                          </div>
+                          <div style={{ fontSize: 14, color: "#a1a1aa" }}>
+                            {analysis.arquetipo?.nombre}
+                            {analysis.arquetipo?.modalidad && (
+                              <span style={{ color: "#71717a" }}> ({analysis.arquetipo.modalidad})</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                  <p style={{ color: "#a1a1aa", fontSize: 14 }}>
-                    {analysis.fallo?.porque}
-                  </p>
-                </div>
+                    {/* The Failure */}
+                    <div style={{
+                      background: "#141416",
+                      border: "1px solid #27272a",
+                      borderRadius: 12,
+                      padding: 24
+                    }}>
+                      <h3 style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "#71717a",
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                        marginBottom: 16
+                      }}>
+                        ⚠️ El Fallo
+                      </h3>
+                      
+                      <p style={{ color: "#d4d4d8", marginBottom: 20, lineHeight: 1.6 }}>
+                        {analysis.fallo?.explicacion}
+                      </p>
 
-                {/* Corrections */}
-                <div style={{
-                  background: "#141416",
-                  border: "1px solid #27272a",
-                  borderRadius: 12,
-                  padding: 24
-                }}>
-                  <h3 style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#71717a",
-                    textTransform: "uppercase",
-                    letterSpacing: 1,
-                    marginBottom: 16
-                  }}>
-                    ✅ Cómo Deberías Responder
-                  </h3>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {[
-                      { label: "CALIBRADA", color: "#22c55e", text: analysis.correcciones?.calibrada, idx: 0 },
-                      { label: "CON EDGE", color: "#f59e0b", text: analysis.correcciones?.edge, idx: 1 },
-                      { label: "MÁS SUAVE", color: "#3b82f6", text: analysis.correcciones?.suave, idx: 2 }
-                    ].map((correction) => (
-                      <div key={correction.idx} style={{
+                      <div style={{
                         background: "#0a0a0b",
                         borderRadius: 8,
-                        padding: 16
+                        padding: 16,
+                        marginBottom: 16
                       }}>
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: 8
-                        }}>
-                          <span style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: correction.color,
-                            textTransform: "uppercase",
-                            letterSpacing: 1
-                          }}>
-                            {correction.label}
-                          </span>
-                          <button
-                            onClick={() => copyToClipboard(correction.text || "", correction.idx)}
-                            style={{
-                              background: "transparent",
-                              border: "none",
-                              cursor: "pointer",
-                              color: copiedIndex === correction.idx ? "#22c55e" : "#71717a"
-                            }}
-                          >
-                            {copiedIndex === correction.idx ? (
-                              <CheckCircle style={{ width: 16, height: 16 }} />
-                            ) : (
-                              <Copy style={{ width: 16, height: 16 }} />
-                            )}
-                          </button>
-                        </div>
-                        <p style={{ color: "#e4e4e7", lineHeight: 1.5 }}>{correction.text}</p>
+                        <div style={{ fontSize: 12, color: "#71717a", marginBottom: 8 }}>Momento crítico:</div>
+                        <p style={{ color: "#fca5a5", fontFamily: "monospace", fontSize: 14 }}>
+                          "{analysis.fallo?.momento_critico}"
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                </div>
 
-                {/* Pattern to Watch */}
-                <div style={{
-                  background: "#ef444420",
-                  border: "1px solid #ef444450",
-                  borderRadius: 12,
-                  padding: 24
-                }}>
-                  <h3 style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#fca5a5",
-                    textTransform: "uppercase",
-                    letterSpacing: 1,
-                    marginBottom: 12
-                  }}>
-                    🎯 Patrón a Vigilar
-                  </h3>
-                  <p style={{ color: "#fecaca", lineHeight: 1.6 }}>
-                    {analysis.patron_vigilar}
-                  </p>
-                </div>
+                      <p style={{ color: "#a1a1aa", fontSize: 14 }}>
+                        {analysis.fallo?.porque}
+                      </p>
+                    </div>
+
+                    {/* Corrections */}
+                    <div style={{
+                      background: "#141416",
+                      border: "1px solid #27272a",
+                      borderRadius: 12,
+                      padding: 24
+                    }}>
+                      <h3 style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "#71717a",
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                        marginBottom: 16
+                      }}>
+                        ✅ Cómo Deberías Responder
+                      </h3>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        {[
+                          { label: "CALIBRADA", color: "#22c55e", text: analysis.correcciones?.calibrada, idx: 0 },
+                          { label: "CON EDGE", color: "#f59e0b", text: analysis.correcciones?.edge, idx: 1 },
+                          { label: "MÁS SUAVE", color: "#3b82f6", text: analysis.correcciones?.suave, idx: 2 }
+                        ].map((correction) => (
+                          <div key={correction.idx} style={{
+                            background: "#0a0a0b",
+                            borderRadius: 8,
+                            padding: 16
+                          }}>
+                            <div style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              marginBottom: 8
+                            }}>
+                              <span style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: correction.color,
+                                textTransform: "uppercase",
+                                letterSpacing: 1
+                              }}>
+                                {correction.label}
+                              </span>
+                              <button
+                                onClick={() => copyToClipboard(correction.text || "", correction.idx)}
+                                style={{
+                                  background: "transparent",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  color: copiedIndex === correction.idx ? "#22c55e" : "#71717a"
+                                }}
+                              >
+                                {copiedIndex === correction.idx ? (
+                                  <CheckCircle style={{ width: 16, height: 16 }} />
+                                ) : (
+                                  <Copy style={{ width: 16, height: 16 }} />
+                                )}
+                              </button>
+                            </div>
+                            <p style={{ color: "#e4e4e7", lineHeight: 1.5 }}>{correction.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Pattern to Watch */}
+                    <div style={{
+                      background: "#ef444420",
+                      border: "1px solid #ef444450",
+                      borderRadius: 12,
+                      padding: 24
+                    }}>
+                      <h3 style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "#fca5a5",
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                        marginBottom: 12
+                      }}>
+                        🎯 Patrón a Vigilar
+                      </h3>
+                      <p style={{ color: "#fecaca", lineHeight: 1.6 }}>
+                        {analysis.patron_vigilar}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
